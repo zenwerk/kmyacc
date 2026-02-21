@@ -32,6 +32,12 @@ calc.html: calc.jsy
 	$(KMYACC) -m ../src/kmyacc.js.parser calc.jsy
 	mv -f calc.js calc.html
 
+calc_odin: calc.odin
+	odin build calc.odin -file -out:calc_odin
+
+calc.odin: calc.odiny ../src/kmyacc.odin.parser
+	$(KMYACC) -m ../src/kmyacc.odin.parser calc.odiny
+
 clean:
-	rm -f *~ calc.c Calc.java calc.pl *.class calc calc.html out-*
+	rm -f *~ calc.c Calc.java calc.pl *.class calc calc.html calc.odin calc_odin out-*
 

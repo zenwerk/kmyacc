@@ -47,11 +47,13 @@ char* make_path(const char* base, const char* name)
     return buf;
 }
 #else
-#include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <limits.h>
+#ifdef __linux__
+#include <linux/limits.h>
+#endif
 #include <string.h>
 #include <unistd.h>
 int file_exists(const char *p)

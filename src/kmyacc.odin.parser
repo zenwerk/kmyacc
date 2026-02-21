@@ -1,0 +1,350 @@
+$semval($) yyval
+$semval($,%t) yyval
+$semval(%n) yyastk[yysp-(%l-%n)]
+$semval(%n,%t) yyastk[yysp-(%l-%n)]
+
+/* Prototype file of Odin parser.
+ * This file is PUBLIC DOMAIN.
+ */
+
+package main
+
+import "core:fmt"
+
+$include;
+
+YYSTYPE :: int
+
+YYMAXDEPTH :: 512
+
+$tokenval
+%s :: %n
+$endtokenval
+
+$if -t
+yydebug : bool = true
+$endif
+$ifnot -t
+yydebug : bool = false
+$endif
+
+$if -t
+yyterminals := [?]string{
+    $listvar terminals
+    , "???",
+    }
+
+yytokname :: proc(n: int) -> string {
+    switch n {
+    $switch-for-token-name
+    }
+    return "???"
+}
+
+yyproduction := [?]string{
+    $production-strings,
+}
+
+YYTRACE_NEWSTATE :: proc(state: int, sym: int) {
+    if yydebug {
+        lookahead : string
+        if sym < 0 {
+            lookahead = "--none--"
+        } else {
+            lookahead = yyterminals[sym]
+        }
+        fmt.eprintf("%% State %d, Lookahead %s\n", state, lookahead)
+    }
+}
+
+YYTRACE_READ :: proc(sym: int) {
+    if yydebug {
+        fmt.eprintf("%% Reading %s\n", yyterminals[sym])
+    }
+}
+
+YYTRACE_SHIFT :: proc(sym: int) {
+    if yydebug {
+        fmt.eprintf("%% Shift %s\n", yyterminals[sym])
+    }
+}
+
+YYTRACE_ACCEPT :: proc() {
+    if yydebug {
+        fmt.eprintf("%% Accepted.\n")
+    }
+}
+
+YYTRACE_REDUCE :: proc(n: int) {
+    if yydebug {
+        fmt.eprintf("%% Reduce by (%d) %s\n", n, yyproduction[n])
+    }
+}
+
+YYTRACE_POP :: proc(state: int) {
+    if yydebug {
+        fmt.eprintf("%% Recovering, uncovers state %d\n", state)
+    }
+}
+
+YYTRACE_DISCARD :: proc(sym: int) {
+    if yydebug {
+        fmt.eprintf("%% Discard %s\n", yyterminals[sym])
+    }
+}
+$endif
+
+yytranslate := [?]i16{
+    $listvar yytranslate
+    }
+
+YYBADCH :: $(YYBADCH)
+YYMAXLEX :: $(YYMAXLEX)
+YYTERMS :: $(YYTERMS)
+YYNONTERMS :: $(YYNONTERMS)
+
+yyaction := [?]i16{
+    $listvar yyaction
+    }
+
+YYLAST :: $(YYLAST)
+
+yycheck := [?]i16{
+    $listvar yycheck
+    }
+
+yybase := [?]i16{
+    $listvar yybase
+    }
+
+YY2TBLSTATE :: $(YY2TBLSTATE)
+
+yydefault := [?]i16{
+    $listvar yydefault
+    }
+
+yygoto := [?]i16{
+    $listvar yygoto
+    }
+
+YYGLAST :: $(YYGLAST)
+
+yygcheck := [?]i16{
+    $listvar yygcheck
+    }
+
+yygbase := [?]i16{
+    $listvar yygbase
+    }
+
+yygdefault := [?]i16{
+    $listvar yygdefault
+    }
+
+yylhs := [?]i16{
+    $listvar yylhs
+    }
+
+yylen := [?]i16{
+    $listvar yylen
+    }
+
+YYSTATES :: $(YYSTATES)
+YYNLSTATES :: $(YYNLSTATES)
+YYINTERRTOK :: $(YYINTERRTOK)
+YYUNEXPECTED :: $(YYUNEXPECTED)
+YYDEFAULT :: $(YYDEFAULT)
+
+yyerror : proc(msg: string) = nil
+yylex : proc() -> int = nil
+yylval : YYSTYPE = 0
+
+/*
+ * Find (state, ch) in action table.
+ * Returns action value, or YYDEFAULT if not found.
+ */
+@(private="file")
+yy_find_in_action :: proc(yystate: int, ch: int) -> (int, bool) {
+    yyn := int(yybase[yystate]) + ch
+    if yyn >= 0 && yyn < YYLAST && int(yycheck[yyn]) == ch {
+        return yyn, true
+    }
+    if yystate < YY2TBLSTATE {
+        yyn = int(yybase[yystate + YYNLSTATES]) + ch
+        if yyn >= 0 && yyn < YYLAST && int(yycheck[yyn]) == ch {
+            return yyn, true
+        }
+    }
+    return 0, false
+}
+
+/*
+ * Parser entry point
+ */
+yyparse :: proc() -> int {
+    yyastk : [YYMAXDEPTH]YYSTYPE
+    yysstk : [YYMAXDEPTH]i16
+
+    yystate : int = 0
+    yychar : int = -1
+    yysp : int = 0
+    yyerrflag : int = 0
+    yyn : int = ---
+    yyl : int = ---
+    yyp : int = ---
+    yyval : YYSTYPE = ---
+
+    yysstk[yysp] = 0
+
+    for {
+$if -t
+        YYTRACE_NEWSTATE(yystate, yychar)
+$endif
+        if yybase[yystate] == 0 {
+            yyn = int(yydefault[yystate])
+        } else {
+            if yychar < 0 {
+                yychar = yylex()
+                if yychar <= 0 { yychar = 0 }
+                if yychar < YYMAXLEX {
+                    yychar = int(yytranslate[yychar])
+                } else {
+                    yychar = YYBADCH
+                }
+$if -t
+                YYTRACE_READ(yychar)
+$endif
+            }
+
+            action_idx, found := yy_find_in_action(yystate, yychar)
+            if found {
+                yyn = int(yyaction[action_idx])
+            } else {
+                yyn = YYDEFAULT
+            }
+            if found && yyn != YYDEFAULT {
+                /*
+                 * >= YYNLSTATE: shift and reduce
+                 * > 0: shift
+                 * = 0: accept
+                 * < 0: reduce
+                 * = -YYUNEXPECTED: error
+                 */
+                if yyn > 0 {
+                    /* shift */
+$if -t
+                    YYTRACE_SHIFT(yychar)
+$endif
+                    yysp += 1
+
+                    yystate = yyn
+                    yysstk[yysp] = i16(yystate)
+                    yyastk[yysp] = yylval
+                    yychar = -1
+
+                    if yyerrflag > 0 {
+                        yyerrflag -= 1
+                    }
+                    if yyn < YYNLSTATES {
+                        continue
+                    }
+
+                    /* yyn >= YYNLSTATES means shift-and-reduce */
+                    yyn -= YYNLSTATES
+                } else {
+                    yyn = -yyn
+                }
+            } else {
+                yyn = int(yydefault[yystate])
+            }
+        }
+
+        for {
+            /* reduce/error */
+            if yyn == 0 {
+                /* accept */
+$if -t
+                YYTRACE_ACCEPT()
+$endif
+                return 0
+            } else if yyn != YYUNEXPECTED {
+                /* reduce */
+                yyl = int(yylen[yyn])
+                yyval = yyastk[yysp - yyl + 1]
+$if -t
+                YYTRACE_REDUCE(yyn)
+$endif
+                /* Following line will be replaced by reduce actions */
+                switch yyn {
+$reduce
+                case %n:
+{%b}
+$endreduce
+                }
+                /* Goto - shift nonterminal */
+                yysp -= yyl
+                yyn = int(yylhs[yyn])
+                yyp = int(yygbase[yyn]) + int(yysstk[yysp])
+                if yyp >= 0 && yyp < YYGLAST && int(yygcheck[yyp]) == yyn {
+                    yystate = int(yygoto[yyp])
+                } else {
+                    yystate = int(yygdefault[yyn])
+                }
+
+                yysp += 1
+
+                yysstk[yysp] = i16(yystate)
+                yyastk[yysp] = yyval
+            } else {
+                /* error */
+                switch yyerrflag {
+                case 0:
+                    if yyerror != nil { yyerror("syntax error") }
+                    fallthrough
+                case 1, 2:
+                    yyerrflag = 3
+                    /* Pop until error-expecting state uncovered */
+
+                    for {
+                        err_idx, err_found := yy_find_in_action(yystate, YYINTERRTOK)
+                        if err_found {
+                            yyn = int(yyaction[err_idx])
+                            break
+                        }
+                        if yysp <= 0 {
+                            return 1
+                        }
+                        yysp -= 1
+                        yystate = int(yysstk[yysp])
+$if -t
+                        YYTRACE_POP(yystate)
+$endif
+                    }
+$if -t
+                    YYTRACE_SHIFT(YYINTERRTOK)
+$endif
+                    yysp += 1
+                    yystate = yyn
+                    yysstk[yysp] = i16(yystate)
+
+                case 3:
+$if -t
+                    YYTRACE_DISCARD(yychar)
+$endif
+                    if yychar == 0 {
+                        return 1
+                    }
+                    yychar = -1
+                }
+            }
+
+            if yystate < YYNLSTATES {
+                break
+            }
+            /* >= YYNLSTATES means shift-and-reduce */
+            yyn = yystate - YYNLSTATES
+        }
+    }
+}
+
+$tailcode;

@@ -41,6 +41,8 @@
 #define LANG_CSHAPR	9
 #define LANG_AS		10
 #define LANG_HSP	11
+#define LANG_KINX	12
+#define LANG_ODIN	13
 
 #endif /* global */
 
@@ -111,6 +113,7 @@ private LANGMAP langmap[] = {
   { LANG_AS, "as", ".as", ".asy" },
   { LANG_HSP, "hsp", ".hsp", ".hspy" },
   { LANG_KINX, "kinx", ".kx", ".kxy" },
+  { LANG_ODIN, "odin", ".odin", ".odiny" },
   { -1, NULL, NULL, NULL }
 };
 

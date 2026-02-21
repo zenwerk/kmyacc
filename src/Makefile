@@ -52,6 +52,7 @@ install: $(PROGRAM)
 	$(INSTALL) kmyacc.php.parser $(PARLIB)
 	$(INSTALL) kmyacc.as.parser $(PARLIB)
 	$(INSTALL) kmyacc.hsp.parser $(PARLIB)
+	$(INSTALL) kmyacc.odin.parser $(PARLIB)
 
 
 

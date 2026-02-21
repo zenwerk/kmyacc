@@ -15,6 +15,7 @@
 #define LANG_AS		10
 #define LANG_HSP	11
 #define LANG_KINX	12
+#define LANG_ODIN	13
 
 extern char *get_lang_name(void);
 extern int get_lang_id(void);
