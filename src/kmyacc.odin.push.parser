@@ -1,9 +1,9 @@
-$semval($) yyval
-$semval($,%t) yyval
-$semval(%n) yyastk[yysp-(%l-%n)]
-$semval(%n,%t) yyastk[yysp-(%l-%n)]
+$semval($) ctx.yyval
+$semval($,%t) ctx.yyval
+$semval(%n) ctx.yyastk[ctx.yysp-(%l-%n)]
+$semval(%n,%t) ctx.yyastk[ctx.yysp-(%l-%n)]
 
-/* Prototype file of Odin parser.
+/* Prototype file of Odin push parser.
  * This file is PUBLIC DOMAIN.
  */
 
@@ -16,6 +16,8 @@ $include;
 YYSTYPE :: int
 
 YYMAXDEPTH :: 512
+
+YYPUSH_MORE :: 4
 
 $tokenval
 %s :: %n
@@ -156,8 +158,17 @@ YYUNEXPECTED :: $(YYUNEXPECTED)
 YYDEFAULT :: $(YYDEFAULT)
 
 yyerror : proc(msg: string) = nil
-yylex : proc() -> int = nil
-yylval : YYSTYPE = 0
+
+YYParseContext :: struct {
+    yystate:   int,
+    yychar:    int,
+    yysp:      int,
+    yyerrflag: int,
+    yyval:     YYSTYPE,
+    yylval:    YYSTYPE,
+    yysstk:    [YYMAXDEPTH]i16,
+    yyastk:    [YYMAXDEPTH]YYSTYPE,
+}
 
 /*
  * Find (state, ch) in action table.
@@ -179,44 +190,49 @@ yy_find_in_action :: proc(yystate: int, ch: int) -> (int, bool) {
 }
 
 /*
- * Parser entry point
+ * Initialize push parser context
  */
-yyparse :: proc() -> int {
-    yyastk : [YYMAXDEPTH]YYSTYPE
-    yysstk : [YYMAXDEPTH]i16
+yyparse_init :: proc(ctx: ^YYParseContext) {
+    ctx.yystate = 0
+    ctx.yychar = -1
+    ctx.yysp = 0
+    ctx.yyerrflag = 0
+    ctx.yysstk[0] = 0
+}
 
-    yystate : int = 0
-    yychar : int = -1
-    yysp : int = 0
-    yyerrflag : int = 0
+/*
+ * Push a token to the parser.
+ * Returns: YYPUSH_MORE = need more tokens, 0 = accept, 1 = error
+ */
+yyparse_push :: proc(ctx: ^YYParseContext, token: int, value: YYSTYPE) -> int {
     yyn : int = ---
     yyl : int = ---
     yyp : int = ---
-    yyval : YYSTYPE = ---
 
-    yysstk[yysp] = 0
+    /* Translate the token */
+    ctx.yylval = value
+    if token <= 0 {
+        ctx.yychar = 0
+    } else if token < YYMAXLEX {
+        ctx.yychar = int(yytranslate[token])
+    } else {
+        ctx.yychar = YYBADCH
+    }
+$if -t
+    YYTRACE_READ(ctx.yychar)
+$endif
 
     for {
 $if -t
-        YYTRACE_NEWSTATE(yystate, yychar)
+        YYTRACE_NEWSTATE(ctx.yystate, ctx.yychar)
 $endif
-        if yybase[yystate] == 0 {
-            yyn = int(yydefault[yystate])
+        if yybase[ctx.yystate] == 0 {
+            yyn = int(yydefault[ctx.yystate])
         } else {
-            if yychar < 0 {
-                yychar = yylex()
-                if yychar <= 0 { yychar = 0 }
-                if yychar < YYMAXLEX {
-                    yychar = int(yytranslate[yychar])
-                } else {
-                    yychar = YYBADCH
-                }
-$if -t
-                YYTRACE_READ(yychar)
-$endif
+            if ctx.yychar < 0 {
+                return YYPUSH_MORE
             }
-
-            action_idx, found := yy_find_in_action(yystate, yychar)
+            action_idx, found := yy_find_in_action(ctx.yystate, ctx.yychar)
             if found {
                 yyn = int(yyaction[action_idx])
             } else {
@@ -233,24 +249,24 @@ $endif
                 if yyn > 0 {
                     /* shift */
 $if -t
-                    YYTRACE_SHIFT(yychar)
+                    YYTRACE_SHIFT(ctx.yychar)
 $endif
-                    if yysp + 1 >= YYMAXDEPTH {
+                    if ctx.yysp + 1 >= YYMAXDEPTH {
                         if yyerror != nil { yyerror("parser stack overflow") }
                         return 1
                     }
-                    yysp += 1
+                    ctx.yysp += 1
 
-                    yystate = yyn
-                    yysstk[yysp] = i16(yystate)
-                    yyastk[yysp] = yylval
-                    yychar = -1
+                    ctx.yystate = yyn
+                    ctx.yysstk[ctx.yysp] = i16(ctx.yystate)
+                    ctx.yyastk[ctx.yysp] = ctx.yylval
+                    ctx.yychar = -1
 
-                    if yyerrflag > 0 {
-                        yyerrflag -= 1
+                    if ctx.yyerrflag > 0 {
+                        ctx.yyerrflag -= 1
                     }
                     if yyn < YYNLSTATES {
-                        continue
+                        return YYPUSH_MORE
                     }
 
                     /* yyn >= YYNLSTATES means shift-and-reduce */
@@ -259,7 +275,7 @@ $endif
                     yyn = -yyn
                 }
             } else {
-                yyn = int(yydefault[yystate])
+                yyn = int(yydefault[ctx.yystate])
             }
         }
 
@@ -274,7 +290,7 @@ $endif
             } else if yyn != YYUNEXPECTED {
                 /* reduce */
                 yyl = int(yylen[yyn])
-                yyval = yyastk[yysp - yyl + 1]
+                ctx.yyval = ctx.yyastk[ctx.yysp - yyl + 1]
 $if -t
                 YYTRACE_REDUCE(yyn)
 $endif
@@ -286,76 +302,77 @@ $reduce
 $endreduce
                 }
                 /* Goto - shift nonterminal */
-                yysp -= yyl
+                ctx.yysp -= yyl
                 yyn = int(yylhs[yyn])
-                yyp = int(yygbase[yyn]) + int(yysstk[yysp])
+                yyp = int(yygbase[yyn]) + int(ctx.yysstk[ctx.yysp])
                 if yyp >= 0 && yyp < YYGLAST && int(yygcheck[yyp]) == yyn {
-                    yystate = int(yygoto[yyp])
+                    ctx.yystate = int(yygoto[yyp])
                 } else {
-                    yystate = int(yygdefault[yyn])
+                    ctx.yystate = int(yygdefault[yyn])
                 }
 
-                if yysp + 1 >= YYMAXDEPTH {
+                if ctx.yysp + 1 >= YYMAXDEPTH {
                     if yyerror != nil { yyerror("parser stack overflow") }
                     return 1
                 }
-                yysp += 1
+                ctx.yysp += 1
 
-                yysstk[yysp] = i16(yystate)
-                yyastk[yysp] = yyval
+                ctx.yysstk[ctx.yysp] = i16(ctx.yystate)
+                ctx.yyastk[ctx.yysp] = ctx.yyval
             } else {
                 /* error */
-                switch yyerrflag {
+                switch ctx.yyerrflag {
                 case 0:
                     if yyerror != nil { yyerror("syntax error") }
                     fallthrough
                 case 1, 2:
-                    yyerrflag = 3
+                    ctx.yyerrflag = 3
                     /* Pop until error-expecting state uncovered */
 
                     for {
-                        err_idx, err_found := yy_find_in_action(yystate, YYINTERRTOK)
+                        err_idx, err_found := yy_find_in_action(ctx.yystate, YYINTERRTOK)
                         if err_found {
                             yyn = int(yyaction[err_idx])
                             break
                         }
-                        if yysp <= 0 {
+                        if ctx.yysp <= 0 {
                             return 1
                         }
-                        yysp -= 1
-                        yystate = int(yysstk[yysp])
+                        ctx.yysp -= 1
+                        ctx.yystate = int(ctx.yysstk[ctx.yysp])
 $if -t
-                        YYTRACE_POP(yystate)
+                        YYTRACE_POP(ctx.yystate)
 $endif
                     }
 $if -t
                     YYTRACE_SHIFT(YYINTERRTOK)
 $endif
-                    if yysp + 1 >= YYMAXDEPTH {
+                    if ctx.yysp + 1 >= YYMAXDEPTH {
                         if yyerror != nil { yyerror("parser stack overflow") }
                         return 1
                     }
-                    yysp += 1
-                    yystate = yyn
-                    yysstk[yysp] = i16(yystate)
-                    yyastk[yysp] = 0  /* clear error token value */
+                    ctx.yysp += 1
+                    ctx.yystate = yyn
+                    ctx.yysstk[ctx.yysp] = i16(ctx.yystate)
+                    ctx.yyastk[ctx.yysp] = 0  /* clear error token value */
 
                 case 3:
 $if -t
-                    YYTRACE_DISCARD(yychar)
+                    YYTRACE_DISCARD(ctx.yychar)
 $endif
-                    if yychar == 0 {
+                    if ctx.yychar == 0 {
                         return 1
                     }
-                    yychar = -1
+                    ctx.yychar = -1
+                    return YYPUSH_MORE
                 }
             }
 
-            if yystate < YYNLSTATES {
+            if ctx.yystate < YYNLSTATES {
                 break
             }
             /* >= YYNLSTATES means shift-and-reduce */
-            yyn = yystate - YYNLSTATES
+            yyn = ctx.yystate - YYNLSTATES
         }
     }
 }

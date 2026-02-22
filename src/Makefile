@@ -53,6 +53,7 @@ install: $(PROGRAM)
 	$(INSTALL) kmyacc.as.parser $(PARLIB)
 	$(INSTALL) kmyacc.hsp.parser $(PARLIB)
 	$(INSTALL) kmyacc.odin.parser $(PARLIB)
+	$(INSTALL) kmyacc.odin.push.parser $(PARLIB)
 
 
 

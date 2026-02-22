@@ -38,6 +38,12 @@ calc_odin: calc.odin
 calc.odin: calc.odiny ../src/kmyacc.odin.parser
 	$(KMYACC) -m ../src/kmyacc.odin.parser calc.odiny
 
+calc_push_odin: calc_push.odin
+	odin build calc_push.odin -file -out:calc_push_odin
+
+calc_push.odin: calc_push.odiny ../src/kmyacc.odin.push.parser
+	$(KMYACC) -m ../src/kmyacc.odin.push.parser calc_push.odiny
+
 clean:
-	rm -f *~ calc.c Calc.java calc.pl *.class calc calc.html calc.odin calc_odin out-*
+	rm -f *~ calc.c Calc.java calc.pl *.class calc calc.html calc.odin calc_odin calc_push.odin calc_push_odin out-*
 
