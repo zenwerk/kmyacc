@@ -1,0 +1,971 @@
+/*
+ * streem.odiny - Streem language parser using kmyacc Odin push parser
+ *
+ * Grammar adapted from matz/streem parse.y
+ * Syntax validation only (no AST construction)
+ */
+
+%{
+import "core:os"
+%}
+
+%token keyword_if keyword_else keyword_case keyword_emit keyword_skip
+       keyword_return keyword_namespace keyword_class keyword_import
+       keyword_def keyword_method keyword_new keyword_nil keyword_true keyword_false
+       op_lasgn op_rasgn op_lambda op_lambda2 op_lambda3
+       op_plus op_minus op_mult op_div op_mod
+       op_eq op_neq op_lt op_le op_gt op_ge
+       op_and op_or op_bar op_amper op_colon2
+       lit_time lit_number lit_symbol lit_string
+       identifier label
+
+%nonassoc op_LOWEST
+%right op_lambda op_lambda2 op_lambda3
+%right keyword_else
+%right keyword_if
+%left  op_bar
+%left  op_amper
+%left  op_or
+%left  op_and
+%nonassoc op_eq op_neq
+%left  op_lt op_le op_gt op_ge
+%left  op_plus op_minus
+%left  op_mult op_div op_mod
+%right '!' '~'
+%token op_HIGHEST
+
+%%
+
+program         : topstmts
+                ;
+
+topstmts        : topstmt_list opt_terms
+                | terms topstmt_list opt_terms
+                | opt_terms
+                ;
+
+topstmt_list    : topstmt
+                | topstmt_list terms topstmt
+                ;
+
+topstmt         : keyword_namespace identifier '{' topstmts '}'
+                | keyword_class identifier '{' topstmts '}'
+                | keyword_import identifier
+                | keyword_method fname '(' opt_f_args ')' '{' stmts '}'
+                | keyword_method fname '(' opt_f_args ')' '=' expr
+                | stmt
+                ;
+
+stmts           : stmt_list opt_terms
+                | terms stmt_list opt_terms
+                | opt_terms
+                ;
+
+stmt_list       : stmt
+                | stmt_list terms stmt
+                ;
+
+stmt            : var '=' expr
+                | keyword_def fname '(' opt_f_args ')' '{' stmts '}'
+                | keyword_def fname '(' opt_f_args ')' '=' expr
+                | keyword_def fname '=' expr
+                | expr op_rasgn var
+                | keyword_skip
+                | keyword_emit opt_args
+                | keyword_return opt_args
+                | expr
+                ;
+
+var             : identifier
+                ;
+
+fname           : identifier
+                | lit_string
+                ;
+
+expr            : expr op_plus expr
+                | expr op_minus expr
+                | expr op_mult expr
+                | expr op_div expr
+                | expr op_mod expr
+                | expr op_bar expr
+                | expr op_amper expr
+                | expr op_gt expr
+                | expr op_ge expr
+                | expr op_lt expr
+                | expr op_le expr
+                | expr op_eq expr
+                | expr op_neq expr
+                | op_plus expr                 %prec '!'
+                | op_minus expr                %prec '!'
+                | '!' expr
+                | '~' expr
+                | expr op_and expr
+                | expr op_or expr
+                | '(' opt_f_args op_lambda2 expr
+                | '(' opt_f_args op_lambda3 stmts '}'
+                | keyword_if condition expr opt_else
+                | primary
+                ;
+
+condition       : '(' expr ')'
+                ;
+
+opt_else        : /* none */                   %prec keyword_else
+                | keyword_else expr            %prec keyword_else
+                ;
+
+opt_args        : /* none */
+                | args
+                ;
+
+arg             : expr
+                | label expr
+                | op_mult expr
+                ;
+
+args            : arg
+                | args ',' arg
+                ;
+
+primary         : lit_number
+                | lit_string
+                | lit_symbol
+                | lit_time
+                | var
+                | '(' expr ')'
+                | '[' args ']'
+                | '[' ']'
+                | block
+                | keyword_nil
+                | keyword_true
+                | keyword_false
+                | keyword_new identifier '[' opt_args ']'
+                | fname block
+                | fname '(' opt_args ')' opt_block
+                | primary '.' fname '(' opt_args ')' opt_block
+                | primary '.' fname opt_block
+                | primary '.' '(' opt_args ')' opt_block
+                | op_amper fname
+                ;
+
+opt_block       : /* none */
+                | block
+                ;
+
+pterm           : var
+                | lit_number
+                | lit_string
+                | keyword_nil
+                | keyword_true
+                | keyword_false
+                | '[' ']'
+                | '[' '@' identifier ']'
+                | '[' pattern ']'
+                | '[' '@' identifier pattern ']'
+                | pterm '@' identifier
+                ;
+
+pary            : pterm
+                | pary ',' pterm
+                ;
+
+pstruct         : label pterm
+                | pstruct ',' label pterm
+                ;
+
+pattern         : pary
+                | pary ',' op_mult pterm
+                | pary ',' op_mult pterm ',' pary
+                | op_mult pterm
+                | op_mult pterm ',' pary
+                | pstruct
+                | pstruct ',' op_mult pterm
+                ;
+
+cparam          : op_lambda
+                | keyword_if expr op_lambda
+                | pattern op_lambda
+                | pattern keyword_if expr op_lambda
+                ;
+
+case_body       : keyword_case cparam stmts
+                | case_body keyword_case cparam stmts
+                ;
+
+block           : '{' stmts '}'
+                | '{' bparam stmts '}'
+                | '{' case_body '}'
+                | '{' case_body keyword_else op_lambda stmts '}'
+                ;
+
+bparam          : op_lambda
+                | f_args op_lambda
+                ;
+
+opt_f_args      : /* no args */
+                | f_args
+                ;
+
+f_args          : var
+                | f_args ',' var
+                ;
+
+opt_terms       : /* none */
+                | terms
+                ;
+
+terms           : term
+                | terms term { ctx.yyerrflag = 0; }
+                ;
+
+term            : ';' { ctx.yyerrflag = 0; }
+                | '\n'
+                ;
+
+%%
+
+/* ============================================================
+ * Lexer implementation
+ * ============================================================ */
+
+input_data : []u8
+input_pos : int = 0
+lineno : int = 1
+last_token : int = 0
+debug_lexer : bool = false
+
+peek_char :: proc() -> int {
+    if input_pos >= len(input_data) {
+        return -1
+    }
+    return int(input_data[input_pos])
+}
+
+read_char :: proc() -> int {
+    if input_pos >= len(input_data) {
+        return -1
+    }
+    c := int(input_data[input_pos])
+    input_pos += 1
+    if c == '\n' {
+        lineno += 1
+    }
+    return c
+}
+
+unread_char :: proc(c: int) {
+    if c >= 0 {
+        input_pos -= 1
+        if c == '\n' {
+            lineno -= 1
+        }
+    }
+}
+
+is_alpha :: proc(c: int) -> bool {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+is_digit :: proc(c: int) -> bool {
+    return c >= '0' && c <= '9'
+}
+
+is_alnum :: proc(c: int) -> bool {
+    return is_alpha(c) || is_digit(c)
+}
+
+is_space :: proc(c: int) -> bool {
+    return c == ' ' || c == '\t' || c == '\r'
+}
+
+/* Skip a comment from # to end of line (do NOT consume the newline) */
+skip_comment :: proc() {
+    for {
+        c := peek_char()
+        if c < 0 || c == '\n' {
+            return
+        }
+        read_char()
+    }
+}
+
+/* Skip trailing whitespace/comments/newlines after certain tokens (TRAIL pattern from lex.l) */
+skip_trail :: proc() {
+    for {
+        c := peek_char()
+        if c == ' ' || c == '\t' || c == '\r' {
+            read_char()
+        } else if c == '#' {
+            skip_comment()
+        } else if c == '\n' {
+            read_char()
+        } else {
+            return
+        }
+    }
+}
+
+/* Skip leading whitespace/comments/newlines before certain tokens */
+skip_leading_trail :: proc() {
+    skip_trail()
+}
+
+/* Check if newline should be significant based on last_token */
+newline_is_significant :: proc() -> bool {
+    switch last_token {
+    case identifier, lit_number, lit_string, lit_symbol, lit_time,
+         ')', ']', '}',
+         keyword_nil, keyword_true, keyword_false,
+         keyword_skip, keyword_emit, keyword_return:
+        return true
+    }
+    return false
+}
+
+/* Check if the next non-whitespace token suppresses newline */
+next_suppresses_newline :: proc() -> bool {
+    saved_pos := input_pos
+    saved_line := lineno
+    /* skip spaces and tabs only (not newlines) */
+    for {
+        c := peek_char()
+        if c == ' ' || c == '\t' || c == '\r' {
+            read_char()
+        } else if c == '#' {
+            skip_comment()
+        } else if c == '\n' {
+            read_char()
+        } else {
+            break
+        }
+    }
+    /* Check what the next real character is */
+    result := false
+    c := peek_char()
+    if c == '.' {
+        result = true
+    } else if c == '|' {
+        /* check it's op_bar not || */
+        next_pos := input_pos + 1
+        if next_pos < len(input_data) && input_data[next_pos] == '|' {
+            result = false
+        } else {
+            result = true
+        }
+    } else if is_alpha(c) {
+        /* check if it's 'else' keyword */
+        start := input_pos
+        for input_pos < len(input_data) && is_alnum(int(input_data[input_pos])) {
+            input_pos += 1
+        }
+        word := string(input_data[start:input_pos])
+        if word == "else" {
+            result = true
+        }
+        /* restore */
+    }
+    /* Restore position */
+    input_pos = saved_pos
+    lineno = saved_line
+    return result
+}
+
+read_string :: proc(quote: int) -> bool {
+    for {
+        c := read_char()
+        if c < 0 {
+            return false
+        }
+        if c == '\\' {
+            c2 := read_char()
+            if c2 < 0 {
+                return false
+            }
+            /* skip escaped char */
+        } else if c == quote {
+            return true
+        }
+    }
+}
+
+read_number :: proc(first: int) {
+    c := first
+    if c == '0' {
+        c2 := peek_char()
+        if c2 == 'x' || c2 == 'X' {
+            read_char()
+            for {
+                c3 := peek_char()
+                if (c3 >= '0' && c3 <= '9') || (c3 >= 'a' && c3 <= 'f') || (c3 >= 'A' && c3 <= 'F') {
+                    read_char()
+                } else {
+                    break
+                }
+            }
+            return
+        } else if c2 == 'o' || c2 == 'O' {
+            read_char()
+            for {
+                c3 := peek_char()
+                if c3 >= '0' && c3 <= '7' {
+                    read_char()
+                } else {
+                    break
+                }
+            }
+            return
+        } else if c2 == 'b' || c2 == 'B' {
+            read_char()
+            for {
+                c3 := peek_char()
+                if c3 == '0' || c3 == '1' {
+                    read_char()
+                } else {
+                    break
+                }
+            }
+            return
+        }
+    }
+    /* decimal */
+    for {
+        c2 := peek_char()
+        if is_digit(c2) {
+            read_char()
+        } else {
+            break
+        }
+    }
+    /* fractional part */
+    if peek_char() == '.' {
+        next := input_pos + 1
+        if next < len(input_data) && is_digit(int(input_data[next])) {
+            read_char() /* consume '.' */
+            for {
+                c2 := peek_char()
+                if is_digit(c2) {
+                    read_char()
+                } else {
+                    break
+                }
+            }
+        }
+    }
+    /* exponent */
+    c2 := peek_char()
+    if c2 == 'e' || c2 == 'E' {
+        read_char()
+        c3 := peek_char()
+        if c3 == '+' || c3 == '-' {
+            read_char()
+        }
+        for {
+            c4 := peek_char()
+            if is_digit(c4) {
+                read_char()
+            } else {
+                break
+            }
+        }
+    }
+}
+
+read_ident :: proc() -> string {
+    start := input_pos - 1  /* we already consumed the first char */
+    for {
+        c := peek_char()
+        if is_alnum(c) {
+            read_char()
+        } else if c >= 0x80 {
+            /* UTF-8 multibyte - consume */
+            read_char()
+        } else {
+            break
+        }
+    }
+    return string(input_data[start:input_pos])
+}
+
+check_keyword :: proc(word: string) -> int {
+    switch word {
+    case "if":        return keyword_if
+    case "else":      return keyword_else
+    case "case":      return keyword_case
+    case "emit":      return keyword_emit
+    case "skip":      return keyword_skip
+    case "return":    return keyword_return
+    case "namespace": return keyword_namespace
+    case "class":     return keyword_class
+    case "import":    return keyword_import
+    case "def":       return keyword_def
+    case "method":    return keyword_method
+    case "new":       return keyword_new
+    case "nil":       return keyword_nil
+    case "true":      return keyword_true
+    case "false":     return keyword_false
+    }
+    return 0
+}
+
+/* Apply TRAIL: skip trailing whitespace/comments/newlines */
+trail_after :: proc(tok: int) {
+    skip_trail()
+}
+
+/* Apply leading + trailing trail */
+leading_trail_after :: proc(tok: int) {
+    skip_leading_trail()
+}
+
+streem_yylex :: proc() -> (int, YYSTYPE) {
+    for {
+        c := read_char()
+        if c < 0 {
+            if debug_lexer { fmt.eprintln("LEX: EOF") }
+            return 0, 0
+        }
+
+        /* skip whitespace (not newlines) */
+        if c == ' ' || c == '\t' || c == '\r' {
+            continue
+        }
+
+        /* comment */
+        if c == '#' {
+            skip_comment()
+            continue
+        }
+
+        /* newline handling */
+        if c == '\n' {
+            if newline_is_significant() {
+                if !next_suppresses_newline() {
+                    last_token = '\n'
+                    if debug_lexer { fmt.eprintln("LEX: '\\n'") }
+                    return '\n', 0
+                }
+            }
+            continue
+        }
+
+        /* string */
+        if c == '"' {
+            read_string('"')
+            last_token = lit_string
+            trail_after(lit_string)
+            if debug_lexer { fmt.eprintln("LEX: lit_string") }
+            return lit_string, 0
+        }
+
+        /* number */
+        if is_digit(c) {
+            read_number(c)
+            last_token = lit_number
+            if debug_lexer { fmt.eprintln("LEX: lit_number") }
+            return lit_number, 0
+        }
+
+        /* time literal: digit followed by letters (like 10s, 5min) */
+        /* Actually time literals start with digits and were handled above */
+
+        /* identifier / keyword */
+        if is_alpha(c) {
+            word := read_ident()
+            kw := check_keyword(word)
+            if kw != 0 {
+                last_token = kw
+                /* Some keywords need trail */
+                switch kw {
+                case keyword_case, keyword_skip:
+                    trail_after(kw)
+                case keyword_else:
+                    leading_trail_after(kw)
+                }
+                if debug_lexer { fmt.eprintf("LEX: keyword %s\n", word) }
+                return kw, 0
+            }
+            /* check if followed by ':' (but not '::') -> label */
+            if peek_char() == ':' {
+                next := input_pos + 1
+                if next >= len(input_data) || input_data[next] != ':' {
+                    read_char() /* consume ':' */
+                    last_token = label
+                    trail_after(label)
+                    if debug_lexer { fmt.eprintf("LEX: label '%s'\n", word) }
+                    return label, 0
+                }
+            }
+            last_token = identifier
+            if debug_lexer { fmt.eprintf("LEX: identifier '%s'\n", word) }
+            return identifier, 0
+        }
+
+        /* symbol :identifier */
+        if c == ':' {
+            c2 := peek_char()
+            if c2 == ':' {
+                read_char()
+                last_token = op_colon2
+                trail_after(op_colon2)
+                if debug_lexer { fmt.eprintln("LEX: op_colon2") }
+                return op_colon2, 0
+            }
+            if is_alpha(c2) {
+                read_char()
+                read_ident() /* consume the symbol name */
+                last_token = lit_symbol
+                if debug_lexer { fmt.eprintln("LEX: lit_symbol") }
+                return lit_symbol, 0
+            }
+            /* lone colon - shouldn't normally appear, but return as char */
+            last_token = ':'
+            return ':', 0
+        }
+
+        /* operators */
+        if c == '-' {
+            c2 := peek_char()
+            if c2 == '>' {
+                read_char()
+                last_token = op_lambda
+                trail_after(op_lambda)
+                if debug_lexer { fmt.eprintln("LEX: op_lambda") }
+                return op_lambda, 0
+            }
+            last_token = op_minus
+            trail_after(op_minus)
+            if debug_lexer { fmt.eprintln("LEX: op_minus") }
+            return op_minus, 0
+        }
+
+        if c == '<' {
+            c2 := peek_char()
+            if c2 == '-' {
+                read_char()
+                last_token = op_lasgn
+                trail_after(op_lasgn)
+                if debug_lexer { fmt.eprintln("LEX: op_lasgn") }
+                return op_lasgn, 0
+            }
+            if c2 == '=' {
+                read_char()
+                last_token = op_le
+                trail_after(op_le)
+                if debug_lexer { fmt.eprintln("LEX: op_le") }
+                return op_le, 0
+            }
+            last_token = op_lt
+            trail_after(op_lt)
+            if debug_lexer { fmt.eprintln("LEX: op_lt") }
+            return op_lt, 0
+        }
+
+        if c == '>' {
+            c2 := peek_char()
+            if c2 == '=' {
+                read_char()
+                last_token = op_ge
+                trail_after(op_ge)
+                if debug_lexer { fmt.eprintln("LEX: op_ge") }
+                return op_ge, 0
+            }
+            last_token = op_gt
+            trail_after(op_gt)
+            if debug_lexer { fmt.eprintln("LEX: op_gt") }
+            return op_gt, 0
+        }
+
+        if c == '=' {
+            c2 := peek_char()
+            if c2 == '=' {
+                read_char()
+                last_token = op_eq
+                trail_after(op_eq)
+                if debug_lexer { fmt.eprintln("LEX: op_eq") }
+                return op_eq, 0
+            }
+            if c2 == '>' {
+                read_char()
+                last_token = op_rasgn
+                trail_after(op_rasgn)
+                if debug_lexer { fmt.eprintln("LEX: op_rasgn") }
+                return op_rasgn, 0
+            }
+            last_token = '='
+            trail_after('=')
+            if debug_lexer { fmt.eprintln("LEX: '='") }
+            return '=', 0
+        }
+
+        if c == '!' {
+            c2 := peek_char()
+            if c2 == '=' {
+                read_char()
+                last_token = op_neq
+                trail_after(op_neq)
+                if debug_lexer { fmt.eprintln("LEX: op_neq") }
+                return op_neq, 0
+            }
+            last_token = '!'
+            if debug_lexer { fmt.eprintln("LEX: '!'") }
+            return '!', 0
+        }
+
+        if c == '&' {
+            c2 := peek_char()
+            if c2 == '&' {
+                read_char()
+                last_token = op_and
+                trail_after(op_and)
+                if debug_lexer { fmt.eprintln("LEX: op_and") }
+                return op_and, 0
+            }
+            last_token = op_amper
+            trail_after(op_amper)
+            if debug_lexer { fmt.eprintln("LEX: op_amper") }
+            return op_amper, 0
+        }
+
+        if c == '|' {
+            c2 := peek_char()
+            if c2 == '|' {
+                read_char()
+                last_token = op_or
+                trail_after(op_or)
+                if debug_lexer { fmt.eprintln("LEX: op_or") }
+                return op_or, 0
+            }
+            last_token = op_bar
+            leading_trail_after(op_bar)
+            if debug_lexer { fmt.eprintln("LEX: op_bar") }
+            return op_bar, 0
+        }
+
+        if c == '+' {
+            last_token = op_plus
+            trail_after(op_plus)
+            if debug_lexer { fmt.eprintln("LEX: op_plus") }
+            return op_plus, 0
+        }
+
+        if c == '*' {
+            last_token = op_mult
+            trail_after(op_mult)
+            if debug_lexer { fmt.eprintln("LEX: op_mult") }
+            return op_mult, 0
+        }
+
+        if c == '/' {
+            last_token = op_div
+            trail_after(op_div)
+            if debug_lexer { fmt.eprintln("LEX: op_div") }
+            return op_div, 0
+        }
+
+        if c == '%' {
+            last_token = op_mod
+            trail_after(op_mod)
+            if debug_lexer { fmt.eprintln("LEX: op_mod") }
+            return op_mod, 0
+        }
+
+        if c == '~' {
+            last_token = '~'
+            if debug_lexer { fmt.eprintln("LEX: '~'") }
+            return '~', 0
+        }
+
+        if c == '@' {
+            last_token = '@'
+            if debug_lexer { fmt.eprintln("LEX: '@'") }
+            return '@', 0
+        }
+
+        /* ')' - check for lambda2/lambda3 */
+        if c == ')' {
+            /* Look ahead for -> or ->{ patterns */
+            saved_pos := input_pos
+            saved_line := lineno
+            found_lambda := false
+
+            /* skip spaces */
+            for peek_char() == ' ' || peek_char() == '\t' {
+                read_char()
+            }
+            if peek_char() == '-' {
+                read_char()
+                if peek_char() == '>' {
+                    read_char()
+                    /* check for ->{ */
+                    for peek_char() == ' ' || peek_char() == '\t' {
+                        read_char()
+                    }
+                    if peek_char() == '{' {
+                        read_char()
+                        last_token = op_lambda3
+                        trail_after(op_lambda3)
+                        if debug_lexer { fmt.eprintln("LEX: ')' + op_lambda3") }
+                        /* Return ')' first, then queue lambda3 */
+                        /* Actually we need to return ')' and then op_lambda3.
+                           But push parser gets one token at a time.
+                           In the grammar, op_lambda2/3 appears after ')',
+                           so we return ')' first and set up to return lambda3 next */
+                        pending_token = op_lambda3
+                        has_pending = true
+                        last_token = ')'
+                        return ')', 0
+                    } else {
+                        last_token = op_lambda2
+                        trail_after(op_lambda2)
+                        if debug_lexer { fmt.eprintln("LEX: ')' + op_lambda2") }
+                        pending_token = op_lambda2
+                        has_pending = true
+                        last_token = ')'
+                        return ')', 0
+                    }
+                }
+            }
+            /* Not a lambda - restore */
+            input_pos = saved_pos
+            lineno = saved_line
+            last_token = ')'
+            if debug_lexer { fmt.eprintln("LEX: ')'") }
+            return ')', 0
+        }
+
+        /* delimiters */
+        if c == '(' {
+            last_token = '('
+            trail_after('(')
+            if debug_lexer { fmt.eprintln("LEX: '('") }
+            return '(', 0
+        }
+        if c == '[' {
+            last_token = '['
+            trail_after('[')
+            if debug_lexer { fmt.eprintln("LEX: '['") }
+            return '[', 0
+        }
+        if c == ']' {
+            last_token = ']'
+            if debug_lexer { fmt.eprintln("LEX: ']'") }
+            return ']', 0
+        }
+        if c == '{' {
+            last_token = '{'
+            trail_after('{')
+            if debug_lexer { fmt.eprintln("LEX: '{'") }
+            return '{', 0
+        }
+        if c == '}' {
+            last_token = '}'
+            if debug_lexer { fmt.eprintln("LEX: '}'") }
+            return '}', 0
+        }
+        if c == ',' {
+            last_token = ','
+            trail_after(',')
+            if debug_lexer { fmt.eprintln("LEX: ','") }
+            return ',', 0
+        }
+        if c == ';' {
+            last_token = ';'
+            trail_after(';')
+            if debug_lexer { fmt.eprintln("LEX: ';'") }
+            return ';', 0
+        }
+        if c == '.' {
+            last_token = '.'
+            leading_trail_after('.')
+            if debug_lexer { fmt.eprintln("LEX: '.'") }
+            return '.', 0
+        }
+
+        /* unknown character - skip */
+        if debug_lexer { fmt.eprintf("LEX: unknown char %d '%c'\n", c, rune(c)) }
+    }
+}
+
+/* Pending token mechanism for ) -> lambda2/3 split */
+pending_token : int = 0
+has_pending : bool = false
+
+get_next_token :: proc() -> (int, YYSTYPE) {
+    if has_pending {
+        tok := pending_token
+        has_pending = false
+        last_token = tok
+        if debug_lexer { fmt.eprintf("LEX: pending token %d\n", tok) }
+        return tok, 0
+    }
+    return streem_yylex()
+}
+
+/* ============================================================
+ * Main
+ * ============================================================ */
+
+streem_yyerror :: proc(msg: string) {
+    fmt.eprintf("%d: %s\n", lineno, msg)
+}
+
+main :: proc() {
+    yyerror = streem_yyerror
+
+    args := os.args
+    filename : string
+    data : []u8
+    ok : bool
+
+    if len(args) < 2 {
+        fmt.eprintln("Usage: streem_parser [-d] <file.strm>")
+        os.exit(1)
+    }
+
+    arg_idx := 1
+    for arg_idx < len(args) {
+        if args[arg_idx] == "-d" {
+            debug_lexer = true
+            arg_idx += 1
+        } else {
+            break
+        }
+    }
+
+    if arg_idx >= len(args) {
+        fmt.eprintln("Usage: streem_parser [-d] <file.strm>")
+        os.exit(1)
+    }
+
+    filename = args[arg_idx]
+    data, ok = os.read_entire_file(filename)
+    if !ok {
+        fmt.eprintf("Error: cannot read file '%s'\n", filename)
+        os.exit(1)
+    }
+
+    input_data = data
+    input_pos = 0
+    lineno = 1
+    last_token = 0
+
+    ctx : YYParseContext
+    yyparse_init(&ctx)
+
+    result : int
+    for {
+        token, value := get_next_token()
+        result = yyparse_push(&ctx, token, value)
+        if result != YYPUSH_MORE {
+            break
+        }
+    }
+
+    if result == 0 {
+        fmt.printf("Parse OK: %s\n", filename)
+    } else {
+        fmt.eprintf("Parse FAILED: %s\n", filename)
+        os.exit(1)
+    }
+}
