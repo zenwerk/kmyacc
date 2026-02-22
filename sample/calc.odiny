@@ -5,6 +5,8 @@
 %{
 import "core:os"
 import "core:strconv"
+
+YYSTYPE :: int
 %}
 
 %token NUMBER

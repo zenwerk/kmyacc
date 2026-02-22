@@ -13,8 +13,6 @@ import "core:fmt"
 
 $include;
 
-YYSTYPE :: int
-
 YYMAXDEPTH :: 512
 
 YYPUSH_MORE :: 4
@@ -354,7 +352,7 @@ $endif
                     ctx.yysp += 1
                     ctx.yystate = yyn
                     ctx.yysstk[ctx.yysp] = i16(ctx.yystate)
-                    ctx.yyastk[ctx.yysp] = 0  /* clear error token value */
+                    ctx.yyastk[ctx.yysp] = {}  /* clear error token value */
 
                 case 3:
 $if -t

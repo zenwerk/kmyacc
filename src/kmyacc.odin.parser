@@ -13,8 +13,6 @@ import "core:fmt"
 
 $include;
 
-YYSTYPE :: int
-
 YYMAXDEPTH :: 512
 
 $tokenval
@@ -157,7 +155,7 @@ YYDEFAULT :: $(YYDEFAULT)
 
 yyerror : proc(msg: string) = nil
 yylex : proc() -> int = nil
-yylval : YYSTYPE = 0
+yylval : YYSTYPE = {}
 
 /*
  * Find (state, ch) in action table.
@@ -338,7 +336,7 @@ $endif
                     yysp += 1
                     yystate = yyn
                     yysstk[yysp] = i16(yystate)
-                    yyastk[yysp] = 0  /* clear error token value */
+                    yyastk[yysp] = {}  /* clear error token value */
 
                 case 3:
 $if -t

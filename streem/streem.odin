@@ -9,8 +9,10 @@ import "core:fmt"
 
 
 import "core:os"
+import "core:strconv"
+import "core:strings"
 
-YYSTYPE :: int
+YYSTYPE :: ^Node
 
 YYMAXDEPTH :: 512
 
@@ -426,6 +428,338 @@ yyparse_push :: proc(ctx: ^YYParseContext, token: int, value: YYSTYPE) -> int {
                 ctx.yyval = ctx.yyastk[ctx.yysp - yyl + 1]
                 /* Following line will be replaced by reduce actions */
                 switch yyn {
+                case 1:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 2:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(2-1)]; }
+                case 3:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-2)]; }
+                case 4:
+{ ctx.yyval = node_nodes_new(); }
+                case 5:
+{ ctx.yyval = node_nodes_new(); node_nodes_add(ctx.yyval, ctx.yyastk[ctx.yysp-(1-1)]); }
+                case 6:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-1)]; node_nodes_add(ctx.yyval, ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 7:
+{ ctx.yyval = node_ns_new(node_get_name(ctx.yyastk[ctx.yysp-(5-2)]), ctx.yyastk[ctx.yysp-(5-4)]); }
+                case 8:
+{ ctx.yyval = node_ns_new(node_get_name(ctx.yyastk[ctx.yysp-(5-2)]), ctx.yyastk[ctx.yysp-(5-4)]); }
+                case 9:
+{ ctx.yyval = node_import_new(node_get_name(ctx.yyastk[ctx.yysp-(2-2)])); }
+                case 10:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(8-2)]), node_lambda_new(ctx.yyastk[ctx.yysp-(8-4)], ctx.yyastk[ctx.yysp-(8-7)])); }
+                case 11:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(7-2)]), node_lambda_new(ctx.yyastk[ctx.yysp-(7-4)], ctx.yyastk[ctx.yysp-(7-7)])); }
+                case 12:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 13:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(2-1)]; }
+                case 14:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-2)]; }
+                case 15:
+{ ctx.yyval = node_nodes_new(); }
+                case 16:
+{ ctx.yyval = node_nodes_new(); node_nodes_add(ctx.yyval, ctx.yyastk[ctx.yysp-(1-1)]); }
+                case 17:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-1)]; node_nodes_add(ctx.yyval, ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 18:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(3-1)]), ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 19:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(8-2)]), node_lambda_new(ctx.yyastk[ctx.yysp-(8-4)], ctx.yyastk[ctx.yysp-(8-7)])); }
+                case 20:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(7-2)]), node_lambda_new(ctx.yyastk[ctx.yysp-(7-4)], ctx.yyastk[ctx.yysp-(7-7)])); }
+                case 21:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(4-2)]), ctx.yyastk[ctx.yysp-(4-4)]); }
+                case 22:
+{ ctx.yyval = node_let_new(node_get_name(ctx.yyastk[ctx.yysp-(3-3)]), ctx.yyastk[ctx.yysp-(3-1)]); }
+                case 23:
+{ ctx.yyval = node_skip_new(); }
+                case 24:
+{ ctx.yyval = node_emit_new(ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 25:
+{ ctx.yyval = node_return_new(ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 26:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 27:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 28:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 29:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 30:
+{ ctx.yyval = node_op_new("+", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 31:
+{ ctx.yyval = node_op_new("-", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 32:
+{ ctx.yyval = node_op_new("*", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 33:
+{ ctx.yyval = node_op_new("/", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 34:
+{ ctx.yyval = node_op_new("%%", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 35:
+{ ctx.yyval = node_op_new("|", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 36:
+{ ctx.yyval = node_op_new("&", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 37:
+{ ctx.yyval = node_op_new(">", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 38:
+{ ctx.yyval = node_op_new(">=", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 39:
+{ ctx.yyval = node_op_new("<", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 40:
+{ ctx.yyval = node_op_new("<=", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 41:
+{ ctx.yyval = node_op_new("==", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 42:
+{ ctx.yyval = node_op_new("!=", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 43:
+{ ctx.yyval = node_op_new("+", nil, ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 44:
+{ ctx.yyval = node_op_new("-", nil, ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 45:
+{ ctx.yyval = node_op_new("!", nil, ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 46:
+{ ctx.yyval = node_op_new("~", nil, ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 47:
+{ ctx.yyval = node_op_new("&&", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 48:
+{ ctx.yyval = node_op_new("||", ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 49:
+{ ctx.yyval = node_lambda_new(ctx.yyastk[ctx.yysp-(4-2)], ctx.yyastk[ctx.yysp-(4-4)]); }
+                case 50:
+{ lam := node_lambda_new(ctx.yyastk[ctx.yysp-(5-2)], ctx.yyastk[ctx.yysp-(5-4)]); (&lam.data.(Node_Lambda)).is_block = true; ctx.yyval = lam; }
+                case 51:
+{ ctx.yyval = node_if_new(ctx.yyastk[ctx.yysp-(4-2)], ctx.yyastk[ctx.yysp-(4-3)], ctx.yyastk[ctx.yysp-(4-4)]); }
+                case 52:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 53:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-2)]; }
+                case 54:
+{ ctx.yyval = nil; }
+                case 55:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(2-2)]; }
+                case 56:
+{ ctx.yyval = nil; }
+                case 57:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 58:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 59:
+{ ctx.yyval = node_pair_new(node_get_name(ctx.yyastk[ctx.yysp-(2-1)]), ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 60:
+{ ctx.yyval = node_splat_new(ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 61:
+{ ctx.yyval = node_array_new(); node_array_add(ctx.yyval, ctx.yyastk[ctx.yysp-(1-1)]); }
+                case 62:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-1)]; node_array_add(ctx.yyval, ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 63:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 64:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 65:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 66:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 67:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 68:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-2)]; }
+                case 69:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-2)]; }
+                case 70:
+{ ctx.yyval = node_array_new(); }
+                case 71:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 72:
+{ ctx.yyval = node_nil_new(); }
+                case 73:
+{ ctx.yyval = node_bool_new(true); }
+                case 74:
+{ ctx.yyval = node_bool_new(false); }
+                case 75:
+{ ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(5-2)]), ctx.yyastk[ctx.yysp-(5-4)]); }
+                case 76:
+{ args := node_array_new(); node_array_add(args, ctx.yyastk[ctx.yysp-(2-2)]); ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(2-1)]), args); }
+                case 77:
+{
+                      if ctx.yyastk[ctx.yysp-(5-5)] != nil {
+                        args := ctx.yyastk[ctx.yysp-(5-3)];
+                        if args == nil { args = node_array_new(); }
+                        node_array_add(args, ctx.yyastk[ctx.yysp-(5-5)]);
+                        ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(5-1)]), args);
+                      } else {
+                        ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(5-1)]), ctx.yyastk[ctx.yysp-(5-3)]);
+                      }
+                    }
+                case 78:
+{
+                      args := ctx.yyastk[ctx.yysp-(7-5)];
+                      if args == nil { args = node_array_new(); }
+                      if ctx.yyastk[ctx.yysp-(7-7)] != nil { node_array_add(args, ctx.yyastk[ctx.yysp-(7-7)]); }
+                      call := node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(7-3)]), args);
+                      ctx.yyval = node_fcall_new(ctx.yyastk[ctx.yysp-(7-1)], node_array_new());
+                      fcall_args := node_array_new();
+                      node_array_add(fcall_args, ctx.yyastk[ctx.yysp-(7-1)]);
+                      if ctx.yyastk[ctx.yysp-(7-5)] != nil {
+                        fa := &(ctx.yyastk[ctx.yysp-(7-5)]).data.(Node_Array);
+                        for e in fa.elements { node_array_add(fcall_args, e); }
+                      }
+                      if ctx.yyastk[ctx.yysp-(7-7)] != nil { node_array_add(fcall_args, ctx.yyastk[ctx.yysp-(7-7)]); }
+                      ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(7-3)]), fcall_args);
+                    }
+                case 79:
+{
+                      if ctx.yyastk[ctx.yysp-(4-4)] != nil {
+                        args := node_array_new();
+                        node_array_add(args, ctx.yyastk[ctx.yysp-(4-1)]);
+                        node_array_add(args, ctx.yyastk[ctx.yysp-(4-4)]);
+                        ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(4-3)]), args);
+                      } else {
+                        args := node_array_new();
+                        node_array_add(args, ctx.yyastk[ctx.yysp-(4-1)]);
+                        ctx.yyval = node_call_new(node_get_name(ctx.yyastk[ctx.yysp-(4-3)]), args);
+                      }
+                    }
+                case 80:
+{
+                      args := ctx.yyastk[ctx.yysp-(6-4)];
+                      if args == nil { args = node_array_new(); }
+                      if ctx.yyastk[ctx.yysp-(6-6)] != nil { node_array_add(args, ctx.yyastk[ctx.yysp-(6-6)]); }
+                      ctx.yyval = node_fcall_new(ctx.yyastk[ctx.yysp-(6-1)], args);
+                    }
+                case 81:
+{ ctx.yyval = node_genfunc_new(node_get_name(ctx.yyastk[ctx.yysp-(2-2)])); }
+                case 82:
+{ ctx.yyval = nil; }
+                case 83:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 84:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 85:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 86:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 87:
+{ ctx.yyval = node_nil_new(); }
+                case 88:
+{ ctx.yyval = node_bool_new(true); }
+                case 89:
+{ ctx.yyval = node_bool_new(false); }
+                case 90:
+{ ctx.yyval = node_parray_new(); }
+                case 91:
+{ ctx.yyval = node_parray_new(); node_parray_add(ctx.yyval, node_splat_new(ctx.yyastk[ctx.yysp-(4-3)])); }
+                case 92:
+{ pa := node_parray_new(); node_parray_add(pa, ctx.yyastk[ctx.yysp-(3-2)]); ctx.yyval = pa; }
+                case 93:
+{ pa := node_parray_new(); node_parray_add(pa, node_splat_new(ctx.yyastk[ctx.yysp-(5-3)])); node_parray_add(pa, ctx.yyastk[ctx.yysp-(5-4)]); ctx.yyval = pa; }
+                case 94:
+{ ctx.yyval = node_pair_new(node_get_name(ctx.yyastk[ctx.yysp-(3-3)]), ctx.yyastk[ctx.yysp-(3-1)]); }
+                case 95:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 96:
+{
+                      if ctx.yyastk[ctx.yysp-(3-1)] != nil && ctx.yyastk[ctx.yysp-(3-1)].type == .PArray {
+                        node_parray_add(ctx.yyastk[ctx.yysp-(3-1)], ctx.yyastk[ctx.yysp-(3-3)]); ctx.yyval = ctx.yyastk[ctx.yysp-(3-1)];
+                      } else {
+                        pa := node_parray_new();
+                        node_parray_add(pa, ctx.yyastk[ctx.yysp-(3-1)]);
+                        node_parray_add(pa, ctx.yyastk[ctx.yysp-(3-3)]);
+                        ctx.yyval = pa;
+                      }
+                    }
+                case 97:
+{ ps := node_pstruct_new(); node_pstruct_add(ps, node_pair_new(node_get_name(ctx.yyastk[ctx.yysp-(2-1)]), ctx.yyastk[ctx.yysp-(2-2)])); ctx.yyval = ps; }
+                case 98:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(4-1)]; node_pstruct_add(ctx.yyval, node_pair_new(node_get_name(ctx.yyastk[ctx.yysp-(4-3)]), ctx.yyastk[ctx.yysp-(4-4)])); }
+                case 99:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 100:
+{
+                      if ctx.yyastk[ctx.yysp-(4-1)] != nil && ctx.yyastk[ctx.yysp-(4-1)].type == .PArray {
+                        node_parray_add(ctx.yyastk[ctx.yysp-(4-1)], node_splat_new(ctx.yyastk[ctx.yysp-(4-4)])); ctx.yyval = ctx.yyastk[ctx.yysp-(4-1)];
+                      } else {
+                        pa := node_parray_new();
+                        node_parray_add(pa, ctx.yyastk[ctx.yysp-(4-1)]);
+                        node_parray_add(pa, node_splat_new(ctx.yyastk[ctx.yysp-(4-4)]));
+                        ctx.yyval = pa;
+                      }
+                    }
+                case 101:
+{
+                      pa := node_parray_new();
+                      if ctx.yyastk[ctx.yysp-(6-1)] != nil && ctx.yyastk[ctx.yysp-(6-1)].type == .PArray {
+                        pa = ctx.yyastk[ctx.yysp-(6-1)];
+                      } else {
+                        node_parray_add(pa, ctx.yyastk[ctx.yysp-(6-1)]);
+                      }
+                      node_parray_add(pa, node_splat_new(ctx.yyastk[ctx.yysp-(6-4)]));
+                      if ctx.yyastk[ctx.yysp-(6-6)] != nil && ctx.yyastk[ctx.yysp-(6-6)].type == .PArray {
+                        tail := &(ctx.yyastk[ctx.yysp-(6-6)]).data.(Node_PArray);
+                        for p in tail.patterns { node_parray_add(pa, p); }
+                      } else {
+                        node_parray_add(pa, ctx.yyastk[ctx.yysp-(6-6)]);
+                      }
+                      ctx.yyval = pa;
+                    }
+                case 102:
+{ ctx.yyval = node_splat_new(ctx.yyastk[ctx.yysp-(2-2)]); }
+                case 103:
+{
+                      pa := node_parray_new();
+                      node_parray_add(pa, node_splat_new(ctx.yyastk[ctx.yysp-(4-2)]));
+                      if ctx.yyastk[ctx.yysp-(4-4)] != nil && ctx.yyastk[ctx.yysp-(4-4)].type == .PArray {
+                        tail := &(ctx.yyastk[ctx.yysp-(4-4)]).data.(Node_PArray);
+                        for p in tail.patterns { node_parray_add(pa, p); }
+                      } else {
+                        node_parray_add(pa, ctx.yyastk[ctx.yysp-(4-4)]);
+                      }
+                      ctx.yyval = pa;
+                    }
+                case 104:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 105:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(4-1)]; node_pstruct_add(ctx.yyval, node_splat_new(ctx.yyastk[ctx.yysp-(4-4)])); }
+                case 106:
+{ ctx.yyval = node_plambda_new(nil, nil); }
+                case 107:
+{ ctx.yyval = node_plambda_new(nil, ctx.yyastk[ctx.yysp-(3-2)]); }
+                case 108:
+{ ctx.yyval = node_plambda_new(ctx.yyastk[ctx.yysp-(2-1)], nil); }
+                case 109:
+{ ctx.yyval = node_plambda_new(ctx.yyastk[ctx.yysp-(4-1)], ctx.yyastk[ctx.yysp-(4-3)]); }
+                case 110:
+{ ctx.yyval = node_plambda_body(ctx.yyastk[ctx.yysp-(3-2)], ctx.yyastk[ctx.yysp-(3-3)]); }
+                case 111:
+{ node_plambda_body(ctx.yyastk[ctx.yysp-(4-3)], ctx.yyastk[ctx.yysp-(4-4)]); ctx.yyval = node_plambda_add(ctx.yyastk[ctx.yysp-(4-1)], ctx.yyastk[ctx.yysp-(4-3)]); }
+                case 112:
+{ ctx.yyval = node_block_new(ctx.yyastk[ctx.yysp-(3-2)]); }
+                case 113:
+{
+                      lam := node_lambda_new(ctx.yyastk[ctx.yysp-(4-2)], ctx.yyastk[ctx.yysp-(4-3)]);
+                      (&lam.data.(Node_Lambda)).is_block = true;
+                      ctx.yyval = lam;
+                    }
+                case 114:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-2)]; }
+                case 115:
+{
+                      else_case := node_plambda_new(nil, nil);
+                      node_plambda_body(else_case, ctx.yyastk[ctx.yysp-(6-5)]);
+                      ctx.yyval = node_plambda_add(ctx.yyastk[ctx.yysp-(6-2)], else_case);
+                    }
+                case 116:
+{ ctx.yyval = nil; }
+                case 117:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(2-1)]; }
+                case 118:
+{ ctx.yyval = nil; }
+                case 119:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(1-1)]; }
+                case 120:
+{ ctx.yyval = node_args_new(); node_args_add(ctx.yyval, node_get_name(ctx.yyastk[ctx.yysp-(1-1)])); }
+                case 121:
+{ ctx.yyval = ctx.yyastk[ctx.yysp-(3-1)]; node_args_add(ctx.yyval, node_get_name(ctx.yyastk[ctx.yysp-(3-3)])); }
                 case 125:
 { ctx.yyerrflag = 0; }
                 case 126:
@@ -478,7 +812,7 @@ yyparse_push :: proc(ctx: ^YYParseContext, token: int, value: YYSTYPE) -> int {
                     ctx.yysp += 1
                     ctx.yystate = yyn
                     ctx.yysstk[ctx.yysp] = i16(ctx.yystate)
-                    ctx.yyastk[ctx.yysp] = 0  /* clear error token value */
+                    ctx.yyastk[ctx.yysp] = {}  /* clear error token value */
 
                 case 3:
                     if ctx.yychar == 0 {
@@ -580,7 +914,7 @@ skip_trail :: proc() {
     }
 }
 
-/* Skip leading whitespace/comments/newlines before certain tokens */
+/* Skip leading + trailing trail */
 skip_leading_trail :: proc() {
     skip_trail()
 }
@@ -645,25 +979,28 @@ next_suppresses_newline :: proc() -> bool {
     return result
 }
 
-read_string :: proc(quote: int) -> bool {
+read_string :: proc(quote: int) -> string {
+    start := input_pos  /* position after the opening quote */
     for {
         c := read_char()
         if c < 0 {
-            return false
+            return string(input_data[start:input_pos])
         }
         if c == '\\' {
             c2 := read_char()
             if c2 < 0 {
-                return false
+                return string(input_data[start:input_pos])
             }
             /* skip escaped char */
         } else if c == quote {
-            return true
+            /* input_pos is now past the closing quote */
+            return string(input_data[start:input_pos - 1])
         }
     }
 }
 
-read_number :: proc(first: int) {
+read_number :: proc(first: int) -> string {
+    start := input_pos - 1  /* we already consumed the first char */
     c := first
     if c == '0' {
         c2 := peek_char()
@@ -677,7 +1014,7 @@ read_number :: proc(first: int) {
                     break
                 }
             }
-            return
+            return string(input_data[start:input_pos])
         } else if c2 == 'o' || c2 == 'O' {
             read_char()
             for {
@@ -688,7 +1025,7 @@ read_number :: proc(first: int) {
                     break
                 }
             }
-            return
+            return string(input_data[start:input_pos])
         } else if c2 == 'b' || c2 == 'B' {
             read_char()
             for {
@@ -699,7 +1036,7 @@ read_number :: proc(first: int) {
                     break
                 }
             }
-            return
+            return string(input_data[start:input_pos])
         }
     }
     /* decimal */
@@ -743,6 +1080,7 @@ read_number :: proc(first: int) {
             }
         }
     }
+    return string(input_data[start:input_pos])
 }
 
 read_ident :: proc() -> string {
@@ -797,7 +1135,7 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
         c := read_char()
         if c < 0 {
             if debug_lexer { fmt.eprintln("LEX: EOF") }
-            return 0, 0
+            return 0, nil
         }
 
         /* skip whitespace (not newlines) */
@@ -817,7 +1155,7 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 if !next_suppresses_newline() {
                     last_token = '\n'
                     if debug_lexer { fmt.eprintln("LEX: '\\n'") }
-                    return '\n', 0
+                    return '\n', nil
                 }
             }
             continue
@@ -825,23 +1163,49 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
 
         /* string */
         if c == '"' {
-            read_string('"')
+            str_val := read_string('"')
             last_token = lit_string
             trail_after(lit_string)
-            if debug_lexer { fmt.eprintln("LEX: lit_string") }
-            return lit_string, 0
+            if debug_lexer { fmt.eprintf("LEX: lit_string \"%s\"\n", str_val) }
+            return lit_string, node_str_new(str_val)
         }
 
         /* number */
         if is_digit(c) {
-            read_number(c)
+            num_str := read_number(c)
             last_token = lit_number
-            if debug_lexer { fmt.eprintln("LEX: lit_number") }
-            return lit_number, 0
+            if debug_lexer { fmt.eprintf("LEX: lit_number %s\n", num_str) }
+            /* Parse the number into a node */
+            if strings.contains_rune(num_str, '.') || strings.contains_rune(num_str, 'e') || strings.contains_rune(num_str, 'E') {
+                val, ok := strconv.parse_f64(num_str)
+                if ok {
+                    return lit_number, node_float_new(val)
+                }
+            } else {
+                val, ok := strconv.parse_i64_of_base(num_str, 10)
+                if ok {
+                    return lit_number, node_int_new(val)
+                }
+                /* Try hex/oct/bin */
+                if len(num_str) > 2 {
+                    prefix := num_str[0:2]
+                    rest := num_str[2:]
+                    base : int = 0
+                    switch prefix {
+                    case "0x", "0X": base = 16
+                    case "0o", "0O": base = 8
+                    case "0b", "0B": base = 2
+                    }
+                    if base != 0 {
+                        val2, ok2 := strconv.parse_i64_of_base(rest, base)
+                        if ok2 {
+                            return lit_number, node_int_new(val2)
+                        }
+                    }
+                }
+            }
+            return lit_number, node_int_new(0)
         }
-
-        /* time literal: digit followed by letters (like 10s, 5min) */
-        /* Actually time literals start with digits and were handled above */
 
         /* identifier / keyword */
         if is_alpha(c) {
@@ -857,7 +1221,7 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                     leading_trail_after(kw)
                 }
                 if debug_lexer { fmt.eprintf("LEX: keyword %s\n", word) }
-                return kw, 0
+                return kw, nil
             }
             /* check if followed by ':' (but not '::') -> label */
             if peek_char() == ':' {
@@ -867,12 +1231,12 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                     last_token = label
                     trail_after(label)
                     if debug_lexer { fmt.eprintf("LEX: label '%s'\n", word) }
-                    return label, 0
+                    return label, node_ident_new(word)
                 }
             }
             last_token = identifier
             if debug_lexer { fmt.eprintf("LEX: identifier '%s'\n", word) }
-            return identifier, 0
+            return identifier, node_ident_new(word)
         }
 
         /* symbol :identifier */
@@ -883,18 +1247,18 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_colon2
                 trail_after(op_colon2)
                 if debug_lexer { fmt.eprintln("LEX: op_colon2") }
-                return op_colon2, 0
+                return op_colon2, nil
             }
             if is_alpha(c2) {
                 read_char()
-                read_ident() /* consume the symbol name */
+                sym_name := read_ident()
                 last_token = lit_symbol
-                if debug_lexer { fmt.eprintln("LEX: lit_symbol") }
-                return lit_symbol, 0
+                if debug_lexer { fmt.eprintf("LEX: lit_symbol :%s\n", sym_name) }
+                return lit_symbol, node_ident_new(sym_name)
             }
-            /* lone colon - shouldn't normally appear, but return as char */
+            /* lone colon */
             last_token = ':'
-            return ':', 0
+            return ':', nil
         }
 
         /* operators */
@@ -905,12 +1269,12 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_lambda
                 trail_after(op_lambda)
                 if debug_lexer { fmt.eprintln("LEX: op_lambda") }
-                return op_lambda, 0
+                return op_lambda, nil
             }
             last_token = op_minus
             trail_after(op_minus)
             if debug_lexer { fmt.eprintln("LEX: op_minus") }
-            return op_minus, 0
+            return op_minus, nil
         }
 
         if c == '<' {
@@ -920,19 +1284,19 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_lasgn
                 trail_after(op_lasgn)
                 if debug_lexer { fmt.eprintln("LEX: op_lasgn") }
-                return op_lasgn, 0
+                return op_lasgn, nil
             }
             if c2 == '=' {
                 read_char()
                 last_token = op_le
                 trail_after(op_le)
                 if debug_lexer { fmt.eprintln("LEX: op_le") }
-                return op_le, 0
+                return op_le, nil
             }
             last_token = op_lt
             trail_after(op_lt)
             if debug_lexer { fmt.eprintln("LEX: op_lt") }
-            return op_lt, 0
+            return op_lt, nil
         }
 
         if c == '>' {
@@ -942,12 +1306,12 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_ge
                 trail_after(op_ge)
                 if debug_lexer { fmt.eprintln("LEX: op_ge") }
-                return op_ge, 0
+                return op_ge, nil
             }
             last_token = op_gt
             trail_after(op_gt)
             if debug_lexer { fmt.eprintln("LEX: op_gt") }
-            return op_gt, 0
+            return op_gt, nil
         }
 
         if c == '=' {
@@ -957,19 +1321,19 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_eq
                 trail_after(op_eq)
                 if debug_lexer { fmt.eprintln("LEX: op_eq") }
-                return op_eq, 0
+                return op_eq, nil
             }
             if c2 == '>' {
                 read_char()
                 last_token = op_rasgn
                 trail_after(op_rasgn)
                 if debug_lexer { fmt.eprintln("LEX: op_rasgn") }
-                return op_rasgn, 0
+                return op_rasgn, nil
             }
             last_token = '='
             trail_after('=')
             if debug_lexer { fmt.eprintln("LEX: '='") }
-            return '=', 0
+            return '=', nil
         }
 
         if c == '!' {
@@ -979,11 +1343,11 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_neq
                 trail_after(op_neq)
                 if debug_lexer { fmt.eprintln("LEX: op_neq") }
-                return op_neq, 0
+                return op_neq, nil
             }
             last_token = '!'
             if debug_lexer { fmt.eprintln("LEX: '!'") }
-            return '!', 0
+            return '!', nil
         }
 
         if c == '&' {
@@ -993,12 +1357,12 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_and
                 trail_after(op_and)
                 if debug_lexer { fmt.eprintln("LEX: op_and") }
-                return op_and, 0
+                return op_and, nil
             }
             last_token = op_amper
             trail_after(op_amper)
             if debug_lexer { fmt.eprintln("LEX: op_amper") }
-            return op_amper, 0
+            return op_amper, nil
         }
 
         if c == '|' {
@@ -1008,52 +1372,52 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                 last_token = op_or
                 trail_after(op_or)
                 if debug_lexer { fmt.eprintln("LEX: op_or") }
-                return op_or, 0
+                return op_or, nil
             }
             last_token = op_bar
             leading_trail_after(op_bar)
             if debug_lexer { fmt.eprintln("LEX: op_bar") }
-            return op_bar, 0
+            return op_bar, nil
         }
 
         if c == '+' {
             last_token = op_plus
             trail_after(op_plus)
             if debug_lexer { fmt.eprintln("LEX: op_plus") }
-            return op_plus, 0
+            return op_plus, nil
         }
 
         if c == '*' {
             last_token = op_mult
             trail_after(op_mult)
             if debug_lexer { fmt.eprintln("LEX: op_mult") }
-            return op_mult, 0
+            return op_mult, nil
         }
 
         if c == '/' {
             last_token = op_div
             trail_after(op_div)
             if debug_lexer { fmt.eprintln("LEX: op_div") }
-            return op_div, 0
+            return op_div, nil
         }
 
         if c == '%' {
             last_token = op_mod
             trail_after(op_mod)
             if debug_lexer { fmt.eprintln("LEX: op_mod") }
-            return op_mod, 0
+            return op_mod, nil
         }
 
         if c == '~' {
             last_token = '~'
             if debug_lexer { fmt.eprintln("LEX: '~'") }
-            return '~', 0
+            return '~', nil
         }
 
         if c == '@' {
             last_token = '@'
             if debug_lexer { fmt.eprintln("LEX: '@'") }
-            return '@', 0
+            return '@', nil
         }
 
         /* ')' - check for lambda2/lambda3 */
@@ -1061,7 +1425,6 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
             /* Look ahead for -> or ->{ patterns */
             saved_pos := input_pos
             saved_line := lineno
-            found_lambda := false
 
             /* skip spaces */
             for peek_char() == ' ' || peek_char() == '\t' {
@@ -1080,15 +1443,10 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                         last_token = op_lambda3
                         trail_after(op_lambda3)
                         if debug_lexer { fmt.eprintln("LEX: ')' + op_lambda3") }
-                        /* Return ')' first, then queue lambda3 */
-                        /* Actually we need to return ')' and then op_lambda3.
-                           But push parser gets one token at a time.
-                           In the grammar, op_lambda2/3 appears after ')',
-                           so we return ')' first and set up to return lambda3 next */
                         pending_token = op_lambda3
                         has_pending = true
                         last_token = ')'
-                        return ')', 0
+                        return ')', nil
                     } else {
                         last_token = op_lambda2
                         trail_after(op_lambda2)
@@ -1096,7 +1454,7 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
                         pending_token = op_lambda2
                         has_pending = true
                         last_token = ')'
-                        return ')', 0
+                        return ')', nil
                     }
                 }
             }
@@ -1105,7 +1463,7 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
             lineno = saved_line
             last_token = ')'
             if debug_lexer { fmt.eprintln("LEX: ')'") }
-            return ')', 0
+            return ')', nil
         }
 
         /* delimiters */
@@ -1113,47 +1471,47 @@ streem_yylex :: proc() -> (int, YYSTYPE) {
             last_token = '('
             trail_after('(')
             if debug_lexer { fmt.eprintln("LEX: '('") }
-            return '(', 0
+            return '(', nil
         }
         if c == '[' {
             last_token = '['
             trail_after('[')
             if debug_lexer { fmt.eprintln("LEX: '['") }
-            return '[', 0
+            return '[', nil
         }
         if c == ']' {
             last_token = ']'
             if debug_lexer { fmt.eprintln("LEX: ']'") }
-            return ']', 0
+            return ']', nil
         }
         if c == '{' {
             last_token = '{'
             trail_after('{')
             if debug_lexer { fmt.eprintln("LEX: '{'") }
-            return '{', 0
+            return '{', nil
         }
         if c == '}' {
             last_token = '}'
             if debug_lexer { fmt.eprintln("LEX: '}'") }
-            return '}', 0
+            return '}', nil
         }
         if c == ',' {
             last_token = ','
             trail_after(',')
             if debug_lexer { fmt.eprintln("LEX: ','") }
-            return ',', 0
+            return ',', nil
         }
         if c == ';' {
             last_token = ';'
             trail_after(';')
             if debug_lexer { fmt.eprintln("LEX: ';'") }
-            return ';', 0
+            return ';', nil
         }
         if c == '.' {
             last_token = '.'
             leading_trail_after('.')
             if debug_lexer { fmt.eprintln("LEX: '.'") }
-            return '.', 0
+            return '.', nil
         }
 
         /* unknown character - skip */
@@ -1171,7 +1529,7 @@ get_next_token :: proc() -> (int, YYSTYPE) {
         has_pending = false
         last_token = tok
         if debug_lexer { fmt.eprintf("LEX: pending token %d\n", tok) }
-        return tok, 0
+        return tok, nil
     }
     return streem_yylex()
 }
@@ -1238,6 +1596,9 @@ main :: proc() {
 
     if result == 0 {
         fmt.printf("Parse OK: %s\n", filename)
+        if ctx.yyval != nil {
+            print_ast(ctx.yyval, 0)
+        }
     } else {
         fmt.eprintf("Parse FAILED: %s\n", filename)
         os.exit(1)
