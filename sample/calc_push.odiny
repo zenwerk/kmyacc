@@ -1,0 +1,114 @@
+/*
+ * integer calculator (Odin push parser version)
+ */
+
+%{
+import "core:os"
+import "core:strconv"
+
+YYSTYPE :: int
+%}
+
+%token NUMBER
+
+%left '+' '-'
+%left '*' '/'
+
+%%
+
+start:	lines;
+
+lines: /* empty */
+	| lines line
+        ;
+
+line	: expr '\n' { fmt.println($1); }
+	| '\n' { fmt.println("(empty line ignored)"); }
+	| error '\n'
+	;
+
+expr	: expr '+' expr { $$ = $1 + $3; }
+	| expr '-' expr { $$ = $1 - $3; }
+	| expr '*' expr { $$ = $1 * $3; }
+	| expr '/' expr { $$ = $1 / $3; }
+	| '(' expr ')' { $$ = $2; }
+	| NUMBER { $$ = $1; }
+	;
+
+%%
+
+ungot_char : int = -1
+input_buf : [4096]byte
+input_pos : int = 0
+input_len : int = 0
+
+read_char :: proc() -> int {
+    if ungot_char >= 0 {
+        c := ungot_char
+        ungot_char = -1
+        return c
+    }
+    if input_pos >= input_len {
+        n, err := os.read(os.stdin, input_buf[:])
+        if err != nil || n <= 0 {
+            return -1
+        }
+        input_pos = 0
+        input_len = n
+    }
+    c := int(input_buf[input_pos])
+    input_pos += 1
+    return c
+}
+
+unread_char :: proc(c: int) {
+    ungot_char = c
+}
+
+calc_yylex :: proc() -> (int, YYSTYPE) {
+    c : int
+    for {
+        c = read_char()
+        if c < 0 {
+            return 0, 0
+        }
+        if c != ' ' && c != '\t' {
+            break
+        }
+    }
+    if c >= '0' && c <= '9' {
+        buf : [100]byte
+        i := 0
+        for c >= '0' && c <= '9' {
+            buf[i] = byte(c)
+            i += 1
+            c = read_char()
+        }
+        if c >= 0 {
+            unread_char(c)
+        }
+        val, ok := strconv.parse_int(string(buf[:i]))
+        if !ok { val = 0 }
+        return NUMBER, val
+    }
+    return c, 0
+}
+
+calc_yyerror :: proc(msg: string) {
+    fmt.eprintln(msg)
+}
+
+main :: proc() {
+    yyerror = calc_yyerror
+
+    ctx : YYParseContext
+    yyparse_init(&ctx)
+
+    for {
+        token, value := calc_yylex()
+        result := yyparse_push(&ctx, token, value)
+        if result != YYPUSH_MORE {
+            break
+        }
+    }
+}
