@@ -7,10 +7,6 @@ $semval(%n,%t) ctx.yyastk[ctx.yysp-(%l-%n)]
  * This file is PUBLIC DOMAIN.
  */
 
-package main
-
-import "core:fmt"
-
 $include;
 
 YYMAXDEPTH :: 512
