@@ -162,6 +162,7 @@ YYParseContext :: struct {
     yylval:    YYSTYPE,
     yysstk:    [YYMAXDEPTH]i16,
     yyastk:    [YYMAXDEPTH]YYSTYPE,
+    userdata:  rawptr,
 }
 
 /*
