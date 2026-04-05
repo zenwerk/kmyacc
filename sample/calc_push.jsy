@@ -1,0 +1,109 @@
+/*
+ * integer calculator (JavaScript push parser version)
+ */
+
+%{
+/* user prologue */
+%}
+
+%token NUMBER
+
+%left '+' '-'
+%left '*' '/'
+
+%%
+
+start:	lines;
+
+lines: /* empty */
+	| lines line
+        ;
+
+line	: expr '\n' { console.log($1); }
+	| '\n' { console.log("(empty line ignored)"); }
+	| error '\n'
+	;
+
+expr	: expr '+' expr { $$ = $1 + $3; }
+	| expr '-' expr { $$ = $1 - $3; }
+	| expr '*' expr { $$ = $1 * $3; }
+	| expr '/' expr { $$ = Math.floor($1 / $3); }
+	| '(' expr ')' { $$ = $2; }
+	| NUMBER { $$ = $1; }
+	;
+
+%%
+
+/* Lexical analyzer */
+
+var input_buf = "";
+var input_pos = 0;
+
+function read_char() {
+  if (input_pos >= input_buf.length) {
+    return -1;
+  }
+  var c = input_buf.charCodeAt(input_pos);
+  input_pos++;
+  return c;
+}
+
+var ungot_char = -1;
+
+function unread_char(c) {
+  ungot_char = c;
+}
+
+function calc_yylex() {
+  var c;
+  for (;;) {
+    if (ungot_char >= 0) {
+      c = ungot_char;
+      ungot_char = -1;
+    } else {
+      c = read_char();
+    }
+    if (c < 0) {
+      return { token: 0, value: 0 };
+    }
+    if (c !== 0x20 && c !== 0x09) { /* space, tab */
+      break;
+    }
+  }
+  if (c >= 0x30 && c <= 0x39) { /* '0'-'9' */
+    var s = String.fromCharCode(c);
+    for (;;) {
+      if (ungot_char >= 0) {
+        c = ungot_char;
+        ungot_char = -1;
+      } else {
+        c = read_char();
+      }
+      if (c < 0x30 || c > 0x39) {
+        if (c >= 0) { unread_char(c); }
+        break;
+      }
+      s += String.fromCharCode(c);
+    }
+    return { token: NUMBER, value: parseInt(s, 10) };
+  }
+  return { token: c, value: 0 };
+}
+
+/* Main */
+var fs = require("fs");
+input_buf = fs.readFileSync("/dev/stdin", "utf8");
+input_pos = 0;
+
+yyerror = function(msg) {
+  process.stderr.write(msg + "\n");
+};
+
+var ctx = yyparse_init();
+for (;;) {
+  var lex = calc_yylex();
+  var result = yyparse_push(ctx, lex.token, lex.value);
+  if (result !== YYPUSH_MORE) {
+    break;
+  }
+}

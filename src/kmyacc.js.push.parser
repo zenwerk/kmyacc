@@ -1,0 +1,374 @@
+$semval($) ctx.yyval
+$semval($,%t) ctx.yyval
+$semval(%n) ctx.yyastk[ctx.yysp-(%l-%n)]
+$semval(%n,%t) ctx.yyastk[ctx.yysp-(%l-%n)]
+$include;
+
+/* Prototype file of JavaScript push parser.
+ * Written based on kmyacc.odin.push.parser
+ * This file is PUBLIC DOMAIN.
+ */
+
+var YYMAXDEPTH = 512;
+
+var YYPUSH_MORE = 4;
+
+$tokenval
+var %s = %n;
+$endtokenval
+
+$if -t
+var yydebug = true;
+$endif
+$ifnot -t
+var yydebug = false;
+$endif
+
+$if -t
+var yyterminals = [
+    $listvar terminals
+    , "???"
+    ];
+
+function yytokname(n)
+{
+  switch (n) {
+    $switch-for-token-name;
+  default:
+    return "???";
+  }
+}
+
+var yyproduction = [
+  $production-strings;
+];
+
+function YYTRACE_NEWSTATE(state, sym)
+{
+  if (yydebug)
+    console.error("% State " + state + ", Lookahead "
+                       + (sym < 0 ? "--none--" : yyterminals[sym]));
+}
+
+function YYTRACE_READ(sym)
+{
+  if (yydebug)
+    console.error("% Reading " + yyterminals[sym]);
+}
+
+function YYTRACE_SHIFT(sym)
+{
+  if (yydebug)
+    console.error("% Shift " + yyterminals[sym]);
+}
+
+function YYTRACE_ACCEPT()
+{
+  if (yydebug)
+    console.error("% Accepted.");
+}
+
+function YYTRACE_REDUCE(n)
+{
+  if (yydebug)
+    console.error("% Reduce by (" + n + ") " + yyproduction[n]);
+}
+
+function YYTRACE_POP(state)
+{
+  if (yydebug)
+    console.error("% Recovering, uncovers state " + state);
+}
+
+function YYTRACE_DISCARD(sym)
+{
+  if (yydebug)
+    console.error("% Discard " + yyterminals[sym]);
+}
+$endif
+
+
+var yytranslate = [
+  $listvar yytranslate
+  ];
+
+var YYBADCH = $(YYBADCH);
+var YYMAXLEX = $(YYMAXLEX);
+var YYTERMS = $(YYTERMS);
+var YYNONTERMS = $(YYNONTERMS);
+
+var yyaction = [
+  $listvar yyaction
+  ];
+
+var YYLAST = $(YYLAST);
+
+var yycheck = [
+  $listvar yycheck
+  ];
+
+var yybase = [
+  $listvar yybase
+  ];
+
+var YY2TBLSTATE = $(YY2TBLSTATE);
+
+var yydefault = [
+  $listvar yydefault
+  ];
+
+var yygoto = [
+  $listvar yygoto
+  ];
+
+var YYGLAST = $(YYGLAST);
+
+var yygcheck = [
+  $listvar yygcheck
+  ];
+
+var yygbase = [
+  $listvar yygbase
+  ];
+
+var yygdefault = [
+  $listvar yygdefault
+  ];
+
+var yylhs = [
+  $listvar yylhs
+  ];
+
+var yylen = [
+  $listvar yylen
+  ];
+
+var YYSTATES = $(YYSTATES);
+var YYNLSTATES = $(YYNLSTATES);
+var YYINTERRTOK = $(YYINTERRTOK);
+var YYUNEXPECTED = $(YYUNEXPECTED);
+var YYDEFAULT = $(YYDEFAULT);
+
+var yyerror = null;
+
+/*
+ * Find (state, ch) in action table.
+ * Returns [index, found].
+ */
+function yy_find_in_action(yystate, ch)
+{
+  var yyn = yybase[yystate] + ch;
+  if (yyn >= 0 && yyn < YYLAST && yycheck[yyn] == ch) {
+    return [yyn, true];
+  }
+  if (yystate < YY2TBLSTATE) {
+    yyn = yybase[yystate + YYNLSTATES] + ch;
+    if (yyn >= 0 && yyn < YYLAST && yycheck[yyn] == ch) {
+      return [yyn, true];
+    }
+  }
+  return [0, false];
+}
+
+/*
+ * Create and initialize a push parser context.
+ */
+function yyparse_init()
+{
+  return {
+    yystate:   0,
+    yychar:    -1,
+    yysp:      0,
+    yyerrflag: 0,
+    yyval:     null,
+    yylval:    null,
+    yysstk:    [0],
+    yyastk:    []
+  };
+}
+
+/*
+ * Push a token to the parser.
+ * Returns: YYPUSH_MORE = need more tokens, 0 = accept, 1 = error
+ */
+function yyparse_push(ctx, token, value)
+{
+  var yyn, yyl, yyp;
+
+  /* Translate the token */
+  ctx.yylval = value;
+  if (token <= 0) {
+    ctx.yychar = 0;
+  } else if (token < YYMAXLEX) {
+    ctx.yychar = yytranslate[token];
+  } else {
+    ctx.yychar = YYBADCH;
+  }
+$if -t
+  YYTRACE_READ(ctx.yychar);
+$endif
+
+  for (;;) {
+$if -t
+    YYTRACE_NEWSTATE(ctx.yystate, ctx.yychar);
+$endif
+    if (yybase[ctx.yystate] == 0) {
+      yyn = yydefault[ctx.yystate];
+    } else {
+      if (ctx.yychar < 0) {
+        return YYPUSH_MORE;
+      }
+      var result = yy_find_in_action(ctx.yystate, ctx.yychar);
+      var action_idx = result[0];
+      var found = result[1];
+      if (found) {
+        yyn = yyaction[action_idx];
+      } else {
+        yyn = YYDEFAULT;
+      }
+      if (found && yyn != YYDEFAULT) {
+        /*
+         * >= YYNLSTATE: shift and reduce
+         * > 0: shift
+         * = 0: accept
+         * < 0: reduce
+         * = -YYUNEXPECTED: error
+         */
+        if (yyn > 0) {
+          /* shift */
+$if -t
+          YYTRACE_SHIFT(ctx.yychar);
+$endif
+          if (ctx.yysp + 1 >= YYMAXDEPTH) {
+            if (yyerror != null) { yyerror("parser stack overflow"); }
+            return 1;
+          }
+          ctx.yysp++;
+
+          ctx.yystate = yyn;
+          ctx.yysstk[ctx.yysp] = ctx.yystate;
+          ctx.yyastk[ctx.yysp] = ctx.yylval;
+          ctx.yychar = -1;
+
+          if (ctx.yyerrflag > 0) {
+            ctx.yyerrflag--;
+          }
+          if (yyn < YYNLSTATES) {
+            return YYPUSH_MORE;
+          }
+
+          /* yyn >= YYNLSTATES means shift-and-reduce */
+          yyn -= YYNLSTATES;
+        } else {
+          yyn = -yyn;
+        }
+      } else {
+        yyn = yydefault[ctx.yystate];
+      }
+    }
+
+    for (;;) {
+      /* reduce/error */
+      if (yyn == 0) {
+        /* accept */
+$if -t
+        YYTRACE_ACCEPT();
+$endif
+        return 0;
+      }
+      else if (yyn != YYUNEXPECTED) {
+        /* reduce */
+        yyl = yylen[yyn];
+        ctx.yyval = ctx.yyastk[ctx.yysp - yyl + 1];
+$if -t
+        YYTRACE_REDUCE(yyn);
+$endif
+        /* Following line will be replaced by reduce actions */
+        switch (yyn) {
+$reduce
+        case %n:
+{%b} break;
+$endreduce
+        }
+        /* Goto - shift nonterminal */
+        ctx.yysp -= yyl;
+        yyn = yylhs[yyn];
+        yyp = yygbase[yyn] + ctx.yysstk[ctx.yysp];
+        if (yyp >= 0 && yyp < YYGLAST && yygcheck[yyp] == yyn) {
+          ctx.yystate = yygoto[yyp];
+        } else {
+          ctx.yystate = yygdefault[yyn];
+        }
+
+        if (ctx.yysp + 1 >= YYMAXDEPTH) {
+          if (yyerror != null) { yyerror("parser stack overflow"); }
+          return 1;
+        }
+        ctx.yysp++;
+
+        ctx.yysstk[ctx.yysp] = ctx.yystate;
+        ctx.yyastk[ctx.yysp] = ctx.yyval;
+      }
+      else {
+        /* error */
+        switch (ctx.yyerrflag) {
+        case 0:
+          if (yyerror != null) { yyerror("syntax error"); }
+        case 1:
+        case 2:
+          ctx.yyerrflag = 3;
+          /* Pop until error-expecting state uncovered */
+
+          for (;;) {
+            var err_result = yy_find_in_action(ctx.yystate, YYINTERRTOK);
+            var err_idx = err_result[0];
+            var err_found = err_result[1];
+            if (err_found) {
+              yyn = yyaction[err_idx];
+              break;
+            }
+            if (ctx.yysp <= 0) {
+              return 1;
+            }
+            ctx.yysp--;
+            ctx.yystate = ctx.yysstk[ctx.yysp];
+$if -t
+            YYTRACE_POP(ctx.yystate);
+$endif
+          }
+$if -t
+          YYTRACE_SHIFT(YYINTERRTOK);
+$endif
+          if (ctx.yysp + 1 >= YYMAXDEPTH) {
+            if (yyerror != null) { yyerror("parser stack overflow"); }
+            return 1;
+          }
+          ctx.yysp++;
+          ctx.yystate = yyn;
+          ctx.yysstk[ctx.yysp] = ctx.yystate;
+          ctx.yyastk[ctx.yysp] = null;  /* clear error token value */
+          break;
+
+        case 3:
+$if -t
+          YYTRACE_DISCARD(ctx.yychar);
+$endif
+          if (ctx.yychar == 0) {
+            return 1;
+          }
+          ctx.yychar = -1;
+          return YYPUSH_MORE;
+        }
+      }
+
+      if (ctx.yystate < YYNLSTATES) {
+        break;
+      }
+      /* >= YYNLSTATES means shift-and-reduce */
+      yyn = ctx.yystate - YYNLSTATES;
+    }
+  }
+}
+
+
+$tailcode;
